@@ -5,12 +5,8 @@ for use with normalize_forest.py (same rows schema). Supports two targets,
 selected together as one atomic choice via --target (never mix hosts/creds
 across targets):
 
-  --target dc     Jira Data Center / Server + Structure DC REST. Structure
-                   REST 2.0 under the Jira DC host. Forest response is a
-                   flat comma-separated "formula" string:
-                   rowId:depth:itemIdentity.
-  --target cloud  Jira Cloud + Structure Cloud REST. A SEPARATE host and
-                   auth scheme from Jira Cloud itself (see
+  --target cloud  Jira Cloud + Structure Cloud REST (default). A SEPARATE
+                   host and auth scheme from Jira Cloud itself (see
                    references/structure-rest.md). Forest response is a
                    NESTED JSON tree (rows[].children[]), not a flat formula
                    string -- a different shape from DC, not just a
@@ -18,14 +14,10 @@ across targets):
                    "1/jira:issue/29781" (issue) or
                    "2/structure:folder/40218" (folder); no itemTypes lookup
                    needed (unlike DC's type/id form).
-
-Environment (dc):
-  JIRA_PERSONAL_TOKEN   (required) A Jira Data Center / Server Personal
-                        Access Token.
-  JIRA_URL              (required) Base URL of your Jira instance, e.g.
-                        https://jira.example.com. No default is assumed --
-                        a wrong or missing Jira host should fail loudly, not
-                        silently point somewhere unexpected.
+  --target dc     Jira Data Center / Server + Structure DC REST. Structure
+                   REST 2.0 under the Jira DC host. Forest response is a
+                   flat comma-separated "formula" string:
+                   rowId:depth:itemIdentity.
 
 Environment (cloud):
   STRUCTURE_CLOUD_BASE_URL  (required) e.g. https://api.structure.app/v1
@@ -50,6 +42,14 @@ Environment (cloud):
   config, since a Cloud-sourced numeric issue id resolved against the wrong
   Jira host returns a valid-looking but WRONG issue key, not an error.
 
+Environment (dc):
+  JIRA_PERSONAL_TOKEN   (required) A Jira Data Center / Server Personal
+                        Access Token.
+  JIRA_URL              (required) Base URL of your Jira instance, e.g.
+                        https://jira.example.com. No default is assumed --
+                        a wrong or missing Jira host should fail loudly, not
+                        silently point somewhere unexpected.
+
 Optional file (not committed to git):
   <skill-dir>/.env   KEY=VALUE lines; loaded automatically if the file
                      exists. Override path with --env-file PATH. See
@@ -57,10 +57,11 @@ Optional file (not committed to git):
                      interactive prompt that writes this file for you.
 
 Usage:
-  fetch_structure_forest.py --target dc --structure-id 12345 [--out path.json]
+  fetch_structure_forest.py --structure-id 67890 [--out path.json]
+  fetch_structure_forest.py --url 'https://your-tenant.atlassian.net/jira/apps/<appId>/<installId>/structure/board/67890'
+  fetch_structure_forest.py --structure-name 'My Board' [--out path.json]
+  fetch_structure_forest.py --target dc --structure-id 12345
   fetch_structure_forest.py --target dc --url 'https://jira.example.com/secure/StructureBoard.jspa?s=12345'
-  fetch_structure_forest.py --target cloud --url 'https://your-tenant.atlassian.net/jira/apps/<appId>/<installId>/structure/board/67890'
-  fetch_structure_forest.py --target cloud --structure-name 'My Board' [--out path.json]
 
 Defaults:
   By default the script does NOT call Jira issue REST for each row (only two
@@ -68,8 +69,8 @@ Defaults:
   Pass --resolve-issues to map ids to issue keys (many extra API calls).
 
 Options:
-  --target {dc,cloud}   Select host+auth pair for both Structure and Jira
-                        issue-resolution calls together (default: dc).
+  --target {cloud,dc}   Select host+auth pair for both Structure and Jira
+                        issue-resolution calls together (default: cloud).
   --resolve-issues      Call Jira REST to map numeric issue ids to keys (PROJ-1).
   --resolve-names       Resolve custom-field-option grouping rows (e.g. an
                         S-JQL generator grouping by a custom field) to their
@@ -794,13 +795,13 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Fetch Structure forest via REST")
     ap.add_argument(
         "--target",
-        choices=("dc", "cloud"),
+        choices=("cloud", "dc"),
         default=None,
         help="Select host+auth pair for Structure and Jira issue-resolution "
         "calls together. $JIRA_TARGET is equivalent to passing this flag "
         "(same explicit priority; errors if it contradicts --url's shape). "
         "If neither this flag nor $JIRA_TARGET is set, inferred from "
-        "--url's shape when possible, else defaults to dc.",
+        "--url's shape when possible, else defaults to cloud.",
     )
     ap.add_argument("--structure-id", type=int, default=None)
     ap.add_argument(
@@ -910,7 +911,7 @@ def main() -> int:
         return 1
 
     if target is None:
-        target = url_shape or "dc"
+        target = url_shape or "cloud"
 
     cfg = resolve_target_config(target, args.url)
 

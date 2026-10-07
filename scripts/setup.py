@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
 Interactive credential setup for fetch_structure_forest.py. Prompts for a
-target (dc/cloud) and the matching required values, then writes them to a
-KEY=VALUE env file (default: .env next to this script's parent directory,
-same file fetch_structure_forest.py loads automatically).
+target (cloud is the default, dc is also available) and the matching
+required values, then writes them to a KEY=VALUE env file (default: .env
+next to this script's parent directory, same file fetch_structure_forest.py
+loads automatically).
 
 This is a convenience only -- everything it does, you can do by hand:
 copy .env.example to .env and fill in the values yourself. This script
@@ -117,9 +118,9 @@ def main() -> int:
 
     target = ""
     while target not in ("dc", "cloud"):
-        target = _prompt("Target (dc/cloud)", "dc").strip().lower()
+        target = _prompt("Target (cloud/dc)", "cloud").strip().lower()
         if target not in ("dc", "cloud"):
-            print("  please enter 'dc' or 'cloud'")
+            print("  please enter 'cloud' or 'dc'")
 
     pairs = _collect_dc() if target == "dc" else _collect_cloud()
 

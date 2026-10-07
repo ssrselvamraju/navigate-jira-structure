@@ -3,8 +3,8 @@
 A [Claude Code](https://docs.claude.com/en/docs/claude-code) / [Cursor](https://cursor.com)
 Agent Skill for navigating **Jira Structure** boards (the ALM Works / Tempo
 plugin's hierarchical "forest" model) -- something no standard Jira MCP
-server or plugin covers today. Supports both **Jira Data Center / Server**
-and **Jira Cloud**.
+server or plugin covers today. **Jira Cloud is the default target**; **Jira
+Data Center / Server** is also fully supported via `--target dc`.
 
 See [SKILL.md](SKILL.md) for what the skill actually does and when an agent
 should reach for it.
@@ -30,8 +30,8 @@ should reach for it.
      ```bash
      python3 scripts/setup.py
      ```
-     Prompts for your target (`dc` or `cloud`) and the matching values,
-     then writes `.env` for you. Never echoes a token back to the
+     Prompts for your target (`cloud` by default, or `dc`) and the matching
+     values, then writes `.env` for you. Never echoes a token back to the
      terminal.
    - **Manual**: copy `.env.example` to `.env` and fill in your values by
      hand (see [Environment variables](#environment-variables) below).
@@ -45,19 +45,13 @@ should reach for it.
 
 ## Environment variables
 
-The helper script's `--target {dc,cloud}` flag (default `dc`) selects one
+The helper script's `--target {cloud,dc}` flag (default `cloud`) selects one
 full set of credentials below -- never mix `dc` and `cloud` values. See
 `SKILL.md`'s "Handoff to a Jira MCP" section and
 [references/structure-rest.md](references/structure-rest.md) for
 endpoint-level detail.
 
-### Data Center / Server (`--target dc`, default)
-
-- `JIRA_URL` (example: `https://jira.example.com`) -- **required**, no
-  default is assumed.
-- `JIRA_PERSONAL_TOKEN` (PAT for REST, **Bearer** auth)
-
-### Cloud (`--target cloud`)
+### Cloud (`--target cloud`, default)
 
 All five required together (no defaults exist for any of these -- a missing
 Cloud value fails hard rather than silently falling back to a stale value):
@@ -102,7 +96,12 @@ about which:
 Genuinely unverified: behavior at or near Structure's own documented
 30,000-issue-per-structure cap (see its vendor migration notes), and
 real production Cloud credentials beyond the two tenants tested so far.
-`--target dc` remains the default and is unaffected by any of this.
+
+### Data Center / Server (`--target dc`)
+
+- `JIRA_URL` (example: `https://jira.example.com`) -- **required**, no
+  default is assumed.
+- `JIRA_PERSONAL_TOKEN` (PAT for REST, **Bearer** auth)
 
 ### `.env` file details
 
@@ -113,19 +112,7 @@ already set in your shell take precedence over the file. Use
 
 ## Usage
 
-### Fetch a forest (Data Center / Server)
-
-```bash
-export JIRA_URL="https://jira.example.com"
-export JIRA_PERSONAL_TOKEN="your-pat"
-
-python3 scripts/fetch_structure_forest.py \
-  --url 'https://jira.example.com/secure/StructureBoard.jspa?s=12345'
-
-python3 scripts/fetch_structure_forest.py --structure-id 12345 --out /tmp/forest.json
-```
-
-### Fetch a forest (Cloud)
+### Fetch a forest (Cloud, default)
 
 ```bash
 export STRUCTURE_CLOUD_BASE_URL="https://api.structure.app/v1"
@@ -134,10 +121,22 @@ export JIRA_CLOUD_BASE_URL="https://your-company.atlassian.net"
 export JIRA_CLOUD_EMAIL="you@example.com"
 export JIRA_CLOUD_API_TOKEN="your-jira-cloud-api-token"
 
-python3 scripts/fetch_structure_forest.py --target cloud \
+python3 scripts/fetch_structure_forest.py \
   --url 'https://your-company.atlassian.net/jira/apps/<appId>/<installId>/structure/board/67890'
-# or: --target cloud --structure-id 67890
-# or: --target cloud --structure-name 'My Board'
+# or: --structure-id 67890
+# or: --structure-name 'My Board'
+```
+
+### Fetch a forest (Data Center / Server)
+
+```bash
+export JIRA_URL="https://jira.example.com"
+export JIRA_PERSONAL_TOKEN="your-pat"
+
+python3 scripts/fetch_structure_forest.py --target dc \
+  --url 'https://jira.example.com/secure/StructureBoard.jspa?s=12345'
+
+python3 scripts/fetch_structure_forest.py --target dc --structure-id 12345 --out /tmp/forest.json
 ```
 
 Cloud structure ids are a separate id space from DC's -- don't assume a DC
@@ -157,10 +156,10 @@ ignored by that script).
 
 Options:
 
-- **`--target {dc,cloud}`** -- select host+auth pair for Structure and Jira
-  issue-resolution together (default `dc`, or `$JIRA_TARGET`; auto-inferred
-  from `--url`'s shape when neither is given). Never mix a Cloud-sourced
-  numeric issue id with a DC issue-key lookup or vice versa.
+- **`--target {cloud,dc}`** -- select host+auth pair for Structure and Jira
+  issue-resolution together (default `cloud`, or `$JIRA_TARGET`;
+  auto-inferred from `--url`'s shape when neither is given). Never mix a
+  Cloud-sourced numeric issue id with a DC issue-key lookup or vice versa.
 - **`--structure-name NAME`** -- resolve a structure by name instead of a
   numeric id (structure ids may not survive a DC->Cloud migration; treat
   `--structure-id` as a per-target cache, not a portable identifier).

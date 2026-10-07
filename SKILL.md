@@ -1,15 +1,15 @@
 ---
 name: navigate-jira-structure
 description: >-
-  Access a Jira Structure board -- Data Center (StructureBoard.jspa URL or
-  structure id, the s= query parameter) or Cloud (a <tenant>.atlassian.net
-  /jira/apps/.../structure/board/<id> link) -- and pull its live forest/issues
-  using your Jira PAT (DC) or Structure Cloud PAT + Jira Cloud API token
-  (Cloud). Use when asked to access, read, or open a Jira Structure board, a
-  StructureBoard.jspa?s=<id> link, a Jira Cloud Structure board link, or a
-  numeric structure id -- and for Structure (ALM Works / Tempo) forests,
-  automation, S-JQL, subtree models, forest exports, and traversing from an
-  anchor issue.
+  Access a Jira Structure board -- Cloud (a <tenant>.atlassian.net
+  /jira/apps/.../structure/board/<id> link, the default target) or Data
+  Center (StructureBoard.jspa URL or structure id, the s= query parameter)
+  -- and pull its live forest/issues using a Structure Cloud PAT + Jira
+  Cloud API token (Cloud) or your Jira PAT (DC). Use when asked to access,
+  read, or open a Jira Structure board, a Jira Cloud Structure board link, a
+  StructureBoard.jspa?s=<id> link, or a numeric structure id -- and for
+  Structure (ALM Works / Tempo) forests, automation, S-JQL, subtree models,
+  forest exports, and traversing from an anchor issue.
 ---
 
 # Jira Structure
@@ -32,26 +32,27 @@ known keys, use the Jira MCP directly without building a Structure model.
 
 Use this skill when any of the following hold:
 
-- The user shares a **StructureBoard.jspa** link (e.g.
-  `.../secure/StructureBoard.jspa?s=2790`) or a numeric **structure id**, or
-  asks you to **access / read / open** a Structure board. This is the common
-  case: you do **not** need WebFetch or browser access -- fetch the live forest
-  via Structure REST with the Jira PAT (see below). This is the **Jira Data
-  Center** flow. If your organization is on (or migrating to) Jira Cloud, a
-  **Structure Cloud** flow (separate host, separate Structure-specific
-  token, `--target cloud`) is **supported alongside it** -- see
-  [references/structure-rest.md](references/structure-rest.md) for confirmed
-  endpoint shapes and current known limits (e.g. pagination behavior on very
-  large boards is unverified). Cloud board URLs look like
-  `.../jira/apps/<appId>/<installId>/
-  structure/board/<id>`, not the DC `.../secure/StructureBoard.jspa?s=<id>`
-  shape -- both are recognized by `scripts/fetch_structure_forest.py`, which
-  **auto-selects `--target` from the URL shape** when `--target` isn't
-  passed explicitly. If you (or the user) pass an explicit `--target` that
-  contradicts the URL's shape (e.g. a Cloud board link with `--target dc`),
-  the script refuses and errors rather than silently fetching the wrong
-  structure -- the numeric id spaces are confirmed distinct between DC and
-  Cloud, so mixing them returns a valid-looking but wrong forest, not a 404.
+- The user shares a Jira Cloud Structure board link (e.g.
+  `.../jira/apps/<appId>/<installId>/structure/board/<id>`) or a numeric
+  **structure id**, or asks you to **access / read / open** a Structure
+  board. This is the common case: you do **not** need WebFetch or browser
+  access -- fetch the live forest via Structure REST with your Cloud
+  credentials (see below). **Cloud is this skill's default target.** If
+  your organization still runs Jira Data Center / Server, a **DC flow**
+  (`--target dc`, same script, different host/auth pair) is **also fully
+  supported** -- see [references/structure-rest.md](references/structure-rest.md)
+  for confirmed endpoint shapes and current known limits (e.g. pagination
+  behavior on very large Cloud boards is unverified). DC board URLs look
+  like `.../secure/StructureBoard.jspa?s=<id>`, not the Cloud
+  `.../structure/board/<id>` shape -- both are recognized by
+  `scripts/fetch_structure_forest.py`, which **auto-selects `--target` from
+  the URL shape** when `--target` isn't passed explicitly (falling back to
+  `cloud` if the shape can't be determined). If you (or the user) pass an
+  explicit `--target` that contradicts the URL's shape (e.g. a DC board link
+  with `--target cloud`), the script refuses and errors rather than silently
+  fetching the wrong structure -- the numeric id spaces are confirmed
+  distinct between DC and Cloud, so mixing them returns a valid-looking but
+  wrong forest, not a 404.
 - The user references a **Structure board**, **Structure row**, or **S-JQL**.
 - The user pastes **Structure automation** text (generator/inserter settings).
 - The user needs **child order under a root** that may not match Jira links.
@@ -59,13 +60,11 @@ Use this skill when any of the following hold:
 
 ## Fetching the forest from a Structure board URL (preferred when possible)
 
-When the user supplies a board URL like
-`/secure/StructureBoard.jspa?s=<structureId>` (or they give `<structureId>`
-directly) **and** they have Jira credentials available (`JIRA_URL`,
-`JIRA_PERSONAL_TOKEN` in the environment -- see
-[README.md](README.md) for setup, including an interactive
-`scripts/setup.py` helper), **prefer fetching the authoritative forest** via
-Structure REST before asking for a manual export.
+When the user supplies a board URL (Cloud or DC) or a numeric structure id
+directly, **and** they have credentials available for that target in the
+environment -- see [README.md](README.md) for setup, including an
+interactive `scripts/setup.py` helper -- **prefer fetching the authoritative
+forest** via Structure REST before asking for a manual export.
 
 1. **Parse `structureId`** from the query string: parameter **`s=<id>`** is the
    usual form. Example: `...StructureBoard.jspa?s=12345` means structure id **12345**.
@@ -78,11 +77,12 @@ Structure REST before asking for a manual export.
    thousand rows is normal in production) would dump the entire forest into
    the conversation. Read back only the slice you need afterward (e.g. `jq`
    a specific depth/anchor subtree, or a short Python snippet), not the
-   whole file. Pass `--url` or `--structure-id`, plus **`--target {dc,cloud}`** if you
+   whole file. Pass `--url` or `--structure-id`, plus **`--target {cloud,dc}`** if you
    want to set it explicitly (usually unnecessary: when `--url` is given,
-   `--target` is **auto-inferred from the URL's shape** -- a DC `.jspa?s=`
-   link implies `dc`, a Cloud `.../structure/board/<id>` link implies
-   `cloud`; an explicit `--target` that contradicts the URL's shape is a
+   `--target` is **auto-inferred from the URL's shape** -- a Cloud
+   `.../structure/board/<id>` link implies `cloud`, a DC `.jspa?s=` link
+   implies `dc`; with no `--url` or an unrecognized shape, it **defaults to
+   `cloud`**. An explicit `--target` that contradicts the URL's shape is a
    hard error, not a silent fetch of the wrong structure). `--target` picks
    the Structure host+token and the Jira issue-resolution host+credential
    **together as one pair** -- never mix them. For `dc` it reads
@@ -202,7 +202,7 @@ If you cannot build a unique forest from automation text alone, ask for one of:
 
 - A **Structure export** (JSON/CSV) for that board, or
 - A **Structure board URL** or **structure id** and permission to run Structure
-  REST (or the helper script) with `JIRA_URL` / `JIRA_PERSONAL_TOKEN`, or
+  REST (or the helper script) with the matching target's credentials, or
 - An explicit **parent map** or ordered key list with depths.
 
 ## Handoff to a Jira MCP
@@ -237,21 +237,16 @@ See [README.md](README.md) for environment variable setup for either path.
 
 ## Gotcha: expired token
 
-Jira **Personal Access Tokens** (`JIRA_PERSONAL_TOKEN`) expire and can be
-revoked, and nothing auto-refreshes them. An expired token is the most common
-failure here — symptoms are **401/403** from the REST helper and auth errors or
-empty/denied results from the Jira MCP tools.
+Tokens expire and can be revoked, and nothing auto-refreshes them. An
+expired/wrong token is the most common failure here — symptoms are
+**401/403** from the REST helper and auth errors or empty/denied results
+from the Jira MCP tools. **Do not work around an auth failure** by
+retrying, switching endpoints, or falling back to manual exports -- stop
+and ask the user to check token validity first.
 
-**Do not work around an auth failure** by retrying, switching endpoints, or
-falling back to manual exports. Stop and ask the user to check token expiry
-first: regenerate at your Jira instance's PAT settings page (usually
-`<JIRA_URL>/secure/ViewProfile.jspa?selectedTab=com.atlassian.pats.pats-plugin:jira-user-personal-access-tokens`
-on Data Center/Server), update `JIRA_PERSONAL_TOKEN`, then retry. Only
-consider the manual fallbacks once the token is confirmed valid.
-
-Same rule for `--target cloud`: a 401/403 there means check
-`STRUCTURE_CLOUD_TOKEN` (Structure's own token -- **not** the same token as
-`JIRA_CLOUD_API_TOKEN` -- generate a fresh one at
+For the default `--target cloud`: check `STRUCTURE_CLOUD_TOKEN` (Structure's
+own token -- **not** the same token as `JIRA_CLOUD_API_TOKEN` -- generate a
+fresh one at
 `https://<tenant>.atlassian.net/plugins/servlet/ac/com.almworks.jira.structure/personal-structure-settings`
 for the specific tenant in use) or `JIRA_CLOUD_EMAIL`/`JIRA_CLOUD_API_TOKEN`
 (from [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)).
@@ -260,6 +255,12 @@ token from one tenant does not work against another (the same structure id
 silently resolved to a different, unrelated board rather than erroring). Do
 not silently retry against `dc` config, or against a different tenant's
 token, instead.
+
+For `--target dc`: Jira **Personal Access Tokens** (`JIRA_PERSONAL_TOKEN`)
+regenerate at your Jira instance's PAT settings page (usually
+`<JIRA_URL>/secure/ViewProfile.jspa?selectedTab=com.atlassian.pats.pats-plugin:jira-user-personal-access-tokens`
+on Data Center/Server), update `JIRA_PERSONAL_TOKEN`, then retry. Only
+consider the manual fallbacks once the token is confirmed valid.
 
 ## Optional: authoritative forest (REST details)
 
