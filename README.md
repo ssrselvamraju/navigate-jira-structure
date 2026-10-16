@@ -1,15 +1,63 @@
 # navigate-jira-structure
 
-A [Claude Code](https://docs.claude.com/en/docs/claude-code) / [Cursor](https://cursor.com)
-Agent Skill for navigating **Jira Structure** boards (the ALM Works / Tempo
-plugin's hierarchical "forest" model) -- something no standard Jira MCP
-server or plugin covers today. **Jira Cloud is the default target**; **Jira
-Data Center / Server** is also fully supported via `--target dc`.
+**Let Claude Code and Cursor navigate your Jira Structure hierarchy.**
 
-See [SKILL.md](SKILL.md) for what the skill actually does and when an agent
-should reach for it.
+An agent skill for [Claude Code](https://docs.claude.com/en/docs/claude-code)
+and [Cursor](https://cursor.com) that adds Tempo / ALM Works Structure-specific
+hierarchy traversal alongside your Jira MCP tools. Fetch a board's ordered
+forest, focus on an initiative's subtree, and preserve its grouping and order.
+Jira Cloud is the default; Data Center / Server is available with `--target dc`.
+
+## See it in action
+
+![Synthetic Structure subtree demo](docs/demo.gif)
+
+Try the offline demo with Python 3 — no Jira account, tokens, or dependencies:
+
+```bash
+git clone https://github.com/ssrselvamraju/navigate-jira-structure.git
+cd navigate-jira-structure
+python3 examples/demo.py
+```
+
+The demo runs the real subtree extraction helper on a synthetic forest.
+It selects `DEMO-100`, returns its issues grouped by bucket, and excludes the
+next initiative. Group names and issue keys are prefilled; this is an offline
+example, not a recording of a live agent or a Cloud API response.
+See [the demo walkthrough](examples/README.md) for output and a live command.
+
+## What you can ask your agent
+
+After installing the skill and configuring credentials:
+
+- “Open this Structure board and show the subtree under issue ID 100.”
+- “List the issue keys under this anchor, preserving Structure order.”
+- “On Data Center, resolve the custom-field grouping names and list issues
+  under each bucket.”
+
+Structure hierarchy can differ from Jira's native parent/child links. This
+skill uses the board's row order and depth; your Jira MCP can then fetch issue
+fields or perform separately requested updates. The helper does not require
+an MCP server to fetch or traverse a forest.
+
+## Supported workflows
+
+| Capability | Jira Cloud (default) | Data Center / Server |
+| --- | --- | --- |
+| Fetch forest by board URL or structure ID | Yes | Yes |
+| Look up a structure by name | Yes | No |
+| Extract an anchor subtree | Yes | Yes |
+| Resolve numeric issue IDs to Jira keys | Yes, with `--resolve-issues` | Yes, with `--resolve-issues` |
+| Resolve custom-field grouping names | No | Yes, with `--resolve-names` |
+| Reason over a supplied forest export | Yes | Yes |
+
+See [SKILL.md](SKILL.md) for agent instructions and
+[REST details and limitations](references/structure-rest.md) for API behavior.
 
 ## Setup
+
+Clone the repository using the command above, then run setup from its directory.
+Python 3 is required; the helper scripts use the standard library.
 
 1. **Load the skill**
    Copy or symlink this directory into your tool's skills folder, e.g. for
@@ -21,6 +69,9 @@ should reach for it.
    ```
 
    Reload your editor/agent so the skill is picked up.
+
+For Claude Code, copy or symlink the repository into
+   `~/.claude/skills/navigate-jira-structure` instead.
 
 2. **Jira credentials for the helper script**
    The script reads credentials from environment variables, optionally
@@ -42,6 +93,15 @@ should reach for it.
 3. **Optional: shell env instead of a file**
    You can `export` the same variables in your shell instead of using
    `.env`. Shell variables take precedence over the file when both are set.
+
+## Credentials and data
+
+Keep tokens in your local environment or gitignored `.env`; never paste them
+into prompts or commit them. The helper sends requests to the configured
+Structure and Jira hosts using your credentials. Forest exports and resolved
+issue keys may contain private work data; review them before sharing or
+providing them to an agent. Use credentials with access only to the boards
+and issues you intend to read.
 
 ## Environment variables
 
@@ -160,7 +220,7 @@ Options:
   issue-resolution together (default `cloud`, or `$JIRA_TARGET`;
   auto-inferred from `--url`'s shape when neither is given). Never mix a
   Cloud-sourced numeric issue id with a DC issue-key lookup or vice versa.
-- **`--structure-name NAME`** -- resolve a structure by name instead of a
+- **`--structure-name NAME`** -- Cloud only: resolve a structure by name instead of a
   numeric id (structure ids may not survive a DC->Cloud migration; treat
   `--structure-id` as a per-target cache, not a portable identifier).
 - **`--resolve-issues`** -- map numeric ids to issue keys via Jira REST (many
@@ -214,6 +274,14 @@ You can pass the full JSON file produced by `fetch_structure_forest.py`; only
 
 Depth must increase by at most one between consecutive rows; first row is
 typically depth 0.
+
+## Feedback and contributions
+
+Trying this on a new board? [Open an issue](https://github.com/ssrselvamraju/navigate-jira-structure/issues)
+with your target (Cloud or Data Center), the command used, and expected versus
+actual behavior. Remove tokens, tenant URLs, and private issue data; a small
+synthetic forest is ideal for reproducing traversal problems. Pull requests
+for reproducible fixes and documentation improvements are welcome.
 
 ## License
 

@@ -1,0 +1,55 @@
+{
+  "description": "Synthetic normalized forest; group names are prefilled, not fetched from Cloud.",
+  "rows": [
+    {
+      "key": "DEMO-100",
+      "depth": 0,
+      "rowId": "1",
+      "itemIdentity": "issue/100"
+    },
+    {
+      "key": "STRUCTURE-NONISSUE-2",
+      "depth": 1,
+      "rowId": "2",
+      "itemIdentity": "demo-group/platform",
+      "name": "Platform"
+    },
+    {
+      "key": "DEMO-101",
+      "depth": 2,
+      "rowId": "3",
+      "itemIdentity": "issue/101"
+    },
+    {
+      "key": "DEMO-102",
+      "depth": 2,
+      "rowId": "4",
+      "itemIdentity": "issue/102"
+    },
+    {
+      "key": "STRUCTURE-NONISSUE-5",
+      "depth": 1,
+      "rowId": "5",
+      "itemIdentity": "demo-group/experience",
+      "name": "Experience"
+    },
+    {
+      "key": "DEMO-103",
+      "depth": 2,
+      "rowId": "6",
+      "itemIdentity": "issue/103"
+    },
+    {
+      "key": "DEMO-200",
+      "depth": 0,
+      "rowId": "7",
+      "itemIdentity": "issue/200"
+    },
+    {
+      "key": "DEMO-201",
+      "depth": 1,
+      "rowId": "8",
+      "itemIdentity": "issue/201"
+    }
+  ]
+}
